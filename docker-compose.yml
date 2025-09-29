@@ -1,0 +1,47 @@
+version: '3.9'
+#i. A Docker-in-Docker (DinD) service that permits Docker commands from Jenkins safely (privileged mode, socket mount, or remote Docker host).
+services:
+  dind:
+    image: docker:dind 
+    container_name: dind
+    privileged: true #allows the container to run as root
+    networks:
+      - jenkins_dind #connects to the jenkins_dind network
+    environment:
+      DOCKER_TLS_CERTDIR: " /certs" #disable TLS inside DIND
+    volumes:
+      - docker-certs-ca:/certs/ca
+      - docker-certs-client:/certs/client
+      - jenkins-data:/var/jenkins_home
+    restart: unless-stopped
+
+#ii. A Jenkins service that uses DinD to build images and run pipelines.
+  jenkins:
+    build: ./jenkins/jenkins:lts-jdk17 #build the custom jenkins image
+    depends_on:
+      - dind #ensures the Jenkins container starts after the DIND container
+    container_name: jenkins
+    user: root
+    networks:
+      - jenkins_dind #connects to the jenkins_dind network
+    environment:
+      DOCKER_HOST: "tcp://dind:2376" #connects to the DIND container
+      DOCKER_CERT_PATH: "/certs/client" #connects to the DIND container
+      DOCKER_TLS_VERIFY: "1" #connects to the DIND container
+      JENKINS_OPTS: "--argumentsRealm.passwd.nonadminuser=password --argumentsRealm.roles.nonadminuser=pipeline --argumentsRealm.passwd.admin=adminpassword --argumentsRealm.roles.admin=admin" 
+      #creates a non-admin user and an admin user to disable anonymous access
+    volumes:
+     - docker-certs-client:/certs/client:ro 
+     - jenkins-data:/var/jenkins_home 
+     - /usr/bin/docker:/usr/bin/docker
+    ports:
+      - 8080:8080 #exposes the Jenkins web interface to the host
+      - 50000:50000 #exposes the Jenkins agent port to the host
+    restart: unless-stopped
+#iii. Named volumes for Jenkins home and Docker layer cache.
+networks:
+  jenkins_dind: #creates a network for the Jenkins and DIND containers
+volumes:
+  jenkins-data: 
+  docker-certs-ca: 
+  docker-certs-client:
