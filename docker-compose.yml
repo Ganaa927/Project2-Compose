@@ -8,11 +8,13 @@ services:
     networks:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
-      DOCKER_TLS_CERTDIR: " /certs" #disable TLS inside DIND
-    volumes:
+      DOCKER_TLS_CERTDIR: " /certs" #Sets up docker with TLS enbled, and storing certificates in the certs directory
+    volumes: #maps the directories between the host and the container
       - docker-certs-ca:/certs/ca
       - docker-certs-client:/certs/client
       - jenkins-data:/var/jenkins_home
+    ports:
+      - 2376:2376 #maps ports from the container to the host
     restart: unless-stopped
 
 #ii. A Jenkins service that uses DinD to build images and run pipelines.
@@ -25,23 +27,28 @@ services:
     networks:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
-      DOCKER_HOST: "tcp://dind:2376" #connects to the DIND container
-      DOCKER_CERT_PATH: "/certs/client" #connects to the DIND container
-      DOCKER_TLS_VERIFY: "1" #connects to the DIND container
+      DOCKER_HOST: "tcp://dind:2376" #points jenkinst to the docker daemon via TCP on port 2376
+      DOCKER_CERT_PATH: "/certs/client" #Specifies the path to the TLS certificates
+      DOCKER_TLS_VERIFY: "1" #Enables TLS verification for secure Docker communication
       JENKINS_OPTS: "--argumentsRealm.passwd.nonadminuser=password --argumentsRealm.roles.nonadminuser=pipeline --argumentsRealm.passwd.admin=adminpassword --argumentsRealm.roles.admin=admin" 
       #creates a non-admin user and an admin user to disable anonymous access
-    volumes:
+    volumes: #maps volumes between the host and the container
      - docker-certs-client:/certs/client:ro 
      - jenkins-data:/var/jenkins_home 
      - /usr/bin/docker:/usr/bin/docker
-    ports:
-      - 8080:8080 #exposes the Jenkins web interface to the host
-      - 50000:50000 #exposes the Jenkins agent port to the host
+    ports: #maps ports from the container to the host
+      - 8080:8080 #exposes the Jenkins' web interface on port 8080
+      - 50000:50000 #exposes the port used by jenkins agents to communicate with the Jenkins master
     restart: unless-stopped
+    networks:
+      - jenkins_dind #connects the container to the jenkins network
+
+
 #iii. Named volumes for Jenkins home and Docker layer cache.
-networks:
-  jenkins_dind: #creates a network for the Jenkins and DIND containers
-volumes:
-  jenkins-data: 
-  docker-certs-ca: 
+networks: 
+  jenkins_dind: #creates a custom network named jenkins_dind using the bridge driver
+    driver: bridge 
+volumes: 
+  jenkins-data:  #named volume for storing Jenkins data, ensuring Jenkins configurations, jobs, and plugins persist
+  docker-certs-ca: #named volume for storing Docker TLS certificates
   docker-certs-client:
