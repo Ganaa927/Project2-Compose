@@ -9,6 +9,8 @@ services:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
       DOCKER_TLS_CERTDIR:"" #disables TLS
+    volumes:
+      - docker-cache:/var/lib/docker #Docker layer cache
     expose:
       - 2375 #maps ports from the container to the host
     restart: on-failure 
@@ -27,6 +29,7 @@ services:
     volumes: #maps volumes between the host and the container
       - jenkins-data:/var/jenkins_home # named volume for Jenkins home
       - /usr/bin/docker:/usr/bin/docker # maps Docker binary into Jenkins container
+      - /var/run/docker.sock:/var/run/docker.sock # mount Docker socket so pipelines can run docker build/push
     ports: #maps ports from the container to the host
       - 8080:8080 #exposes the Jenkins' web interface on port 8080
       - 50000:50000 #exposes the port used by jenkins agents to communicate with the Jenkins master
