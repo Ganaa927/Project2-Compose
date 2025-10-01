@@ -6,14 +6,14 @@ services:
     container_name: dind
     privileged: true #allows the container to run as root
     networks:
-      -    #connects to the jenkins_dind network
+      - jenkins_dind #connects to the jenkins_dind network
     environment:
-      DOCKER_TLS_CERTDIR=/certs #Sets up docker with TLS enbled, and storing certificates in the certs directory
-    volumes: #maps the directories between the host and the container
-      - jenkins-docker-certs:/certs/client
-      - jenkins-data:/var/jenkins_home
-    ports:
-      - 2376:2376 #maps ports from the container to the host
+      DOCKER_TLS_CERTDIR:"" #Sets up docker with TLS enbled, and storing certificates in the certs directory
+    # volumes: #maps the directories between the host and the container
+    #   - jenkins-docker-certs:/certs/client
+    #   - jenkins-data:/var/jenkins_home
+    expose:
+      - 2375 #maps ports from the container to the host
     restart: on-failure
 
 #ii. A Jenkins service that uses DinD to build images and run pipelines.
@@ -26,12 +26,12 @@ services:
     networks:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
-      DOCKER_HOST=tcp://dind:2376 #points jenkinst to the docker daemon via TCP on port 2376
-      DOCKER_CERT_PATH=/certs/client #Specifies the path to the TLS certificates
-      DOCKER_TLS_VERIFY=1 #Enables TLS verification for secure Docker communication
+      DOCKER_HOST:"tcp://dind:2375" #points jenkinst to the docker daemon via TCP on port 2376
+      # DOCKER_CERT_PATH=/certs/client #Specifies the path to the TLS certificates
+      # DOCKER_TLS_VERIFY=1 #Enables TLS verification for secure Docker communication
     volumes: #maps volumes between the host and the container
-     - jenkins-data:/var/jenkins_home 
-     - jenkins-docker-certs:/certs/client:ro
+      - ./jenkins:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
     ports: #maps ports from the container to the host
       - 8080:8080 #exposes the Jenkins' web interface on port 8080
       - 50000:50000 #exposes the port used by jenkins agents to communicate with the Jenkins master
@@ -44,6 +44,6 @@ services:
 networks: 
   jenkins_dind: #creates a custom network named jenkins_dind using the bridge driver
     driver: bridge 
-volumes: 
-  jenkins-docker-certs: #named volume for storing Docker TLS certificates
-  jenkins-data: #named volume for storing Jenkins data, ensuring Jenkins configurations, jobs, and plugins persist
+# volumes: 
+#   jenkins-docker-certs: #named volume for storing Docker TLS certificates
+#   jenkins-data: #named volume for storing Jenkins data, ensuring Jenkins configurations, jobs, and plugins persist
