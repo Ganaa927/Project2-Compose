@@ -7,14 +7,27 @@ services:
     user: root
     restart: unless-stopped
     ports:
-      - 8080:8080       # Jenkins UI
-      - 50000:50000     # Agent communication
+      - 8080:8080
+      - 50000:50000
     networks:
       - jenkins_network
     volumes:
-      - jenkins-data:/var/jenkins_home   # Jenkins home
-      - /var/run/docker.sock:/var/run/docker.sock   # Host Docker socket
-      - /usr/bin/docker:/usr/bin/docker             # Docker CLI inside container
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+
+  dind:
+    image: docker:dind
+    container_name: jenkins-docker
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - jenkins_network
+    volumes:
+      - dind-data:/var/lib/docker
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
 
 networks:
   jenkins_network:
@@ -22,3 +35,4 @@ networks:
 
 volumes:
   jenkins-data:
+  dind-data:
