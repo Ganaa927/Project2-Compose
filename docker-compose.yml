@@ -1,44 +1,40 @@
 version: '3.9'
-#i. A Docker-in-Docker (DinD) service that permits Docker commands from Jenkins safely (privileged mode, socket mount, or remote Docker host).
 services:
   dind:
-    image: docker:dind 
+    image: docker:dind
     container_name: dind
-    privileged: true #allows the container to run as root
+    privileged: true
     networks:
-      - jenkins_dind #connects to the jenkins_dind network
+      - jenkins_dind
     environment:
-      DOCKER_TLS_CERTDIR:"" #disables TLS
+      DOCKER_TLS_CERTDIR: ""
     volumes:
-      - docker-cache:/var/lib/docker #Docker layer cache
-    ports:
-      - 2375:2375 #maps ports from the container to the host
-    restart: on-failure 
+      - docker-cache:/var/lib/docker
+    restart: on-failure
 
-#ii. A Jenkins service that uses DinD to build images and run pipelines.
   jenkins:
-    image: jenkins/jenkins:lts-jdk17 #using prebuilt image from dockerhub
-    depends_on:
-      - dind #ensures the Jenkins container starts after the DIND container
+    image: jenkins/jenkins:lts-jdk17
     container_name: jenkins
     user: root
     networks:
-      - jenkins_dind #connects to the jenkins_dind network
+      - jenkins_dind
     environment:
-      DOCKER_HOST:"tcp://dind:2375" #points jenkinst to the docker daemon via TCP on port 2376
-    volumes: #maps volumes between the host and the container
-      - jenkins-data:/var/jenkins_home # named volume for Jenkins home
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-    ports: #maps ports from the container to the host
-      - 8080:8080 #exposes the Jenkins' web interface on port 8080
-      - 50000:50000 #exposes the port used by jenkins agents to communicate with the Jenkins master
+    ports:
+      - 8080:8080
+      - 50000:50000
+    depends_on:
+      - dind
     restart: on-failure
 
-networks: 
-  jenkins_dind: #creates a custom network named jenkins_dind using the bridge driver
-    driver: bridge 
+networks:
+  jenkins_dind:
+    driver: bridge
 
-#iii. Named volumes for Jenkins home and Docker layer cache.
 volumes:
-  jenkins-data:   # stores Jenkins configuration, jobs, plugins
-  docker-cache:   # Docker layer cache
+  jenkins-data:
+  docker-cache:
