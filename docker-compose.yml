@@ -30,8 +30,6 @@ services:
       DOCKER_HOST: "tcp://dind:2376" #points jenkinst to the docker daemon via TCP on port 2376
       DOCKER_CERT_PATH: "/certs/client" #Specifies the path to the TLS certificates
       DOCKER_TLS_VERIFY: "1" #Enables TLS verification for secure Docker communication
-      JENKINS_OPTS: "--argumentsRealm.passwd.nonadminuser=password --argumentsRealm.roles.nonadminuser=pipeline --argumentsRealm.passwd.admin=adminpassword --argumentsRealm.roles.admin=admin" 
-      #creates a non-admin user and an admin user to disable anonymous access
     volumes: #maps volumes between the host and the container
      - docker-certs-client:/certs/client:ro 
      - jenkins-data:/var/jenkins_home 
