@@ -19,7 +19,7 @@ services:
 
 #ii. A Jenkins service that uses DinD to build images and run pipelines.
   jenkins:
-    build: ./jenkins/jenkins:lts-jdk17 #build the custom jenkins image
+    image: jenkins/jenkins:lts-jdk17 #using prebuilt image from dockerhub
     depends_on:
       - dind #ensures the Jenkins container starts after the DIND container
     container_name: jenkins
