@@ -47,4 +47,14 @@ pipeline {
             }
         }
     }
+    post {
+            always {
+                // enable the archive of build outputs and test reports
+                archiveArtifacts artifacts: '**/build/**, **/test-reports/**', allowEmptyArchive: true
+                echo 'Artifacts archived.'
+            }
+        }
+
 }
+
+
