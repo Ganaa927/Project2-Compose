@@ -8,13 +8,10 @@ services:
     networks:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
-      DOCKER_TLS_CERTDIR:"" #Sets up docker with TLS enbled, and storing certificates in the certs directory
-    # volumes: #maps the directories between the host and the container
-    #   - jenkins-docker-certs:/certs/client
-    #   - jenkins-data:/var/jenkins_home
+      DOCKER_TLS_CERTDIR:"" #disables TLS
     expose:
       - 2375 #maps ports from the container to the host
-    restart: on-failure
+    restart: on-failure 
 
 #ii. A Jenkins service that uses DinD to build images and run pipelines.
   jenkins:
@@ -27,23 +24,19 @@ services:
       - jenkins_dind #connects to the jenkins_dind network
     environment:
       DOCKER_HOST:"tcp://dind:2375" #points jenkinst to the docker daemon via TCP on port 2376
-      # DOCKER_CERT_PATH=/certs/client #Specifies the path to the TLS certificates
-      # DOCKER_TLS_VERIFY=1 #Enables TLS verification for secure Docker communication
     volumes: #maps volumes between the host and the container
-      - ./jenkins:/var/jenkins_home
-      - /usr/bin/docker:/usr/bin/docker
+      - jenkins-data:/var/jenkins_home # named volume for Jenkins home
+      - /usr/bin/docker:/usr/bin/docker # maps Docker binary into Jenkins container
     ports: #maps ports from the container to the host
       - 8080:8080 #exposes the Jenkins' web interface on port 8080
       - 50000:50000 #exposes the port used by jenkins agents to communicate with the Jenkins master
     restart: on-failure
-    networks:
-      - jenkins_dind #connects the container to the jenkins network
 
-
-#iii. Named volumes for Jenkins home and Docker layer cache.
 networks: 
   jenkins_dind: #creates a custom network named jenkins_dind using the bridge driver
     driver: bridge 
-# volumes: 
-#   jenkins-docker-certs: #named volume for storing Docker TLS certificates
-#   jenkins-data: #named volume for storing Jenkins data, ensuring Jenkins configurations, jobs, and plugins persist
+
+#iii. Named volumes for Jenkins home and Docker layer cache.
+volumes:
+  jenkins-data:   # stores Jenkins configuration, jobs, plugins
+  docker-cache:   # Docker layer cache
