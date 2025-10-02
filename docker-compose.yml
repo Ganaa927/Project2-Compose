@@ -1,38 +1,33 @@
-version: "3.8"
+version: '3.7'
 
 services:
-  dind:
-    image: docker:24-dind
-    privileged: true                          # DinD requires privileged mode
-    environment:
-      DOCKER_TLS_CERTDIR: ""                  # disable TLS for demo 
-    command: ["--host=tcp://0.0.0.0:2375", "--host=unix:///var/run/docker.sock"]
-    volumes:
-      - docker_layer_cache:/var/lib/docker
-    networks:
-      - ci-network
-
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    image: jenkins/jenkins:lts
+    container_name: jenkins
     user: root
-    environment:
-      DOCKER_HOST: "tcp://dind:2375"
-      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
-    volumes:
-      - jenkins_home:/var/jenkins_home
-    depends_on:
-      - dind
     ports:
       - "8080:8080"
       - "50000:50000"
+    volumes:
+      - ./jenkins:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
     networks:
-      - ci-network
-    restart: unless-stopped
+      - jenkins
 
-volumes:
-  jenkins_home:
-  docker_layer_cache:
+  docker:
+    image: docker:dind
+    container_name: docker
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    expose:
+      - "2376"
+    networks:
+      - jenkins
 
 networks:
-  ci-network:
+  jenkins:
     driver: bridge
