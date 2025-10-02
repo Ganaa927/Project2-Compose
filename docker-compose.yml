@@ -5,7 +5,7 @@ services:
     image: docker:24-dind
     privileged: true                          # DinD requires privileged mode
     environment:
-      DOCKER_TLS_CERTDIR: ""                  # disable TLS for demo (explain risk in report)
+      DOCKER_TLS_CERTDIR: ""                  # disable TLS for demo 
     command: ["--host=tcp://0.0.0.0:2375", "--host=unix:///var/run/docker.sock"]
     volumes:
       - docker_layer_cache:/var/lib/docker
