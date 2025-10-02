@@ -1,40 +1,44 @@
-version: '3.9'
+version: '3.8'
 
 services:
+  # Jenkins Master Service
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    image: jenkins/jenkins:lts
     container_name: jenkins
+    privileged: true
     user: root
-    restart: unless-stopped
     ports:
-      - 8080:8080
-      - 50000:50000
-    networks:
-      - jenkins_network
+      - "8080:8080"
+      - "50000:50000"
     volumes:
-      - jenkins-data:/var/jenkins_home
+      - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
     environment:
-      - DOCKER_HOST=tcp://dind:2375
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - jenkins-net
+    restart: unless-stopped
 
+  # Docker-in-Docker (DinD) Service
   dind:
     image: docker:dind
-    container_name: jenkins-docker
+    container_name: jenkins-dind
     privileged: true
-    restart: unless-stopped
-    networks:
-      - jenkins_network
-    # No ports exposed to host, but available to other containers
-    volumes:
-      - dind-data:/var/lib/docker
     environment:
-      - DOCKER_TLS_CERTDIR=""
-    command: ["dockerd", "--host=tcp://0.0.0.0:2375", "--host=unix:///var/run/docker.sock"]
-
-networks:
-  jenkins_network:
-    driver: bridge
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - dind-storage:/var/lib/docker
+    networks:
+      - jenkins-net
+    restart: unless-stopped
 
 volumes:
-  jenkins-data:
-  dind-data:
+  jenkins_home:
+    name: jenkins_home
+  dind-storage:
+    name: dind_storage
+
+networks:
+  jenkins-net:
+    name: jenkins_network
