@@ -20,7 +20,7 @@ services:
       JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
     volumes:
       - jenkins_home:/var/jenkins_home
-      - ./jenkins/init.groovy.d:/var/jenkins_home/init.groovy.d:ro
+      - ./groovy/security.groovy:/var/jenkins_home/init.groovy.d/security.groovy
     depends_on:
       - dind
     ports:
