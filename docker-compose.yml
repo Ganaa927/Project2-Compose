@@ -1,46 +1,51 @@
+#defines the version of the docker compose file
 version: "3.9"
-
+#creates a network for the jenkins container to connect to the docker daemon
 networks:
   jenkins_network:
     driver: bridge
 
-volumes:
-  jenkins_home:
-  docker_certs_ca:
-  docker_certs_client:
+#iii. Named volumes for Jenkins home and Docker layer cache.
+volumes: #creates named volumes for the jenkins home and docker layer cache
+  jenkins_home: #creates a named volume for the jenkins home
+  docker_certs_ca: #creates a named volume for the docker certificates
+  docker_certs_client: 
 
+# i. A Docker-in-Docker (DinD) service that permits Docker commands from Jenkins safely
+#(privileged mode, socket mount, or remote Docker host).
 services:
   dind:
     image: docker:dind
     container_name: dind
-    privileged: true
+    privileged: true #allows the container to run docker commands
     user: root
-    networks:
+    networks: #connects the container to the jenkins network
       jenkins_network:
         aliases:
-          - docker
-    environment:
-      DOCKER_TLS_CERTDIR: "/certs"
-    volumes:
+          - docker #allows the container to be called docker
+    environment: #sets the environment variables for the container
+      DOCKER_TLS_CERTDIR: "/certs" #sets the path to the docker certificates
+    volumes: #mounts the docker certificates and the jenkins home directory
       - docker_certs_ca:/certs/ca
       - docker_certs_client:/certs/client
       - jenkins_home:/var/jenkins_home
-
+      
+# ii. A Jenkins service that uses DinD to build images and run pipelines.
   jenkins:
-    image: jenkins/jenkins:lts-jdk11
-    container_name: jenkins
+    image: jenkins/jenkins:lts-jdk11 #uses the latest jenkins LTS image with JDK 11
+    container_name: jenkins #sets the container name
     user: root
-    networks:
+    networks: #connects the container to the jenkins network
       - jenkins_network
-    environment:
-      DOCKER_HOST: "tcp://docker:2376"
-      DOCKER_CERT_PATH: "/certs/client"
-      DOCKER_TLS_VERIFY: "1"
-    volumes:
-      - jenkins_home:/var/jenkins_home
-      - docker_certs_client:/certs/client:ro
-      - /usr/bin/docker:/usr/bin/docker
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    restart: unless-stopped
+    environment: #sets the environment variables for the container
+      DOCKER_HOST: "tcp://docker:2376" #sets the docker host to the docker container
+      DOCKER_CERT_PATH: "/certs/client" #sets the path to the docker certificates
+      DOCKER_TLS_VERIFY: "1" #sets the docker TLS verify to 1
+    volumes: #mounts the jenkins home directory and the docker certificates
+      - jenkins_home:/var/jenkins_home #mounts the jenkins home directory
+      - docker_certs_client:/certs/client:ro #mounts the docker certificates
+      - /usr/bin/docker:/usr/bin/docker #mounts the docker binary
+    ports: #maps the ports for the container
+      - "8080:8080" #maps the port 8080 for the container
+      - "50000:50000" #maps the port 50000 for the container
+    restart: unless-stopped #restarts the container unless it is stopped
