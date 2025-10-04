@@ -9,6 +9,7 @@ networks:
 volumes: #creates named volumes for the jenkins home and docker layer cache
   jenkins_home: #creates a named volume for the jenkins home
   docker_certs_ca: #creates a named volume for the docker certificates
+  docker_layer_cache: #creates a named volume for the docker layer cache
   docker_certs_client: 
 
 # i. A Docker-in-Docker (DinD) service that permits Docker commands from Jenkins safely
@@ -25,11 +26,11 @@ services:
           - docker #allows the container to be called docker
     environment: #sets the environment variables for the container
       DOCKER_TLS_CERTDIR: "/certs" #sets the path to the docker certificates
-    volumes: #mounts the docker certificates and the jenkins home directory
+    volumes: #mounts the docker certificates and the jenkins home directory and the docker layer cache
       - docker_certs_ca:/certs/ca
       - docker_certs_client:/certs/client
       - jenkins_home:/var/jenkins_home
-      
+      - docker_layer_cache:/var/lib/docker 
 # ii. A Jenkins service that uses DinD to build images and run pipelines.
   jenkins:
     image: jenkins/jenkins:lts-jdk11 #uses the latest jenkins LTS image with JDK 11
